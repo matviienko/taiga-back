@@ -29,7 +29,7 @@ ADMINS = (
     ("Admin", "example@example.com"),
 )
 
-DEBUG = False
+DEBUG = True
 
 DATABASES = {
     "default": {
