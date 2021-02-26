@@ -1,0 +1,83 @@
+version: '2'
+services:
+  taiga:
+    container_name: taiga
+    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TAIGA_SCRIPT_REPOSITORY: "https://${GITHUB_PERSONAL_TOKEN}@${TAIGA_SCRIPT_REPOSITORY:-github.com/matviienko/taiga-scripts.git}"
+        TAIGA_BACK_REPOSITORY: "https://${GITHUB_PERSONAL_TOKEN}@${TAIGA_BACK_REPOSITORY:-github.com/matviienko/taiga-back.git}"
+        TAIGA_BACK_BRANCH: ${TAIGA_BACK_BRANCH:-stable}
+        TAIGA_FRONT_REPOSITORY: "https://${GITHUB_PERSONAL_TOKEN}@${TAIGA_FRONT_REPOSITORY:-github.com/matviienko/taiga-front.git}"
+        TAIGA_FRONT_BRANCH: ${TAIGA_FRONT_BRANCH:-stable}
+        # TAIGA_FRONT_DIST_REPOSITORY: "https://${GITHUB_PERSONAL_TOKEN}@${TAIGA_FRONT_DIST_REPOSITORY:-github.com/matviienko/taiga-front-dist.git}"
+        # TAIGA_FRONT_DIST_BRANCH: "stable"
+    ports:
+      - "${TAIGA_API_PORT:-8080}:80/tcp"
+      # - 443:443 # To enable SSL, uncomment this line
+    environment:
+      # Your hostname (REQUIRED)
+      TAIGA_HOSTNAME: ${TAIGA_BASEURL:-localhost:8080}
+      TAIGA_FRONT_HOSTNAME: ${TAIGA_FRONT_HOSTNAME}
+      # Database settings
+      # To use an external database, simply update these and remove the postgres
+      # service from this docker-compose.yml file
+      TAIGA_DB_HOST: ${TAIGA_DB_HOST:-postgres}
+      TAIGA_DB_PORT: ${TAIGA_DB_PORT:-5432}
+      TAIGA_DB_NAME: ${TAIGA_DB_NAME:-taigadb}
+      TAIGA_DB_USER: ${TAIGA_DB_USER:-postgres}
+      TAIGA_DB_PASSWORD: ${TAIGA_DB_PASSWORD:-password}
+      TAIGA_SLEEP: ${TAIGA_SLEEP:-15} # when the db comes up from docker, it is usually too quick
+      TAIGA_SSL: ${TAIGA_SSL:-False}
+      TAIGA_SSL_BY_REVERSE_PROXY: ${TAIGA_SSL_BY_REVERSE_PROXY:-False}
+      TAIGA_ENABLE_EMAIL: ${TAIGA_ENABLE_EMAIL:-False}
+      TAIGA_SECRET_KEY: ${TAIGA_SECRET_KEY:-!!!REPLACE-ME-j1598u1J^U*(y251u98u51u5981urf98u2o5uvoiiuzhlit3)!!!}
+
+      # TAIGA_SSL: True # To enable SSL, uncomment this line
+      # TAIGA_SSL_BY_REVERSE_PROXY: True # To enable SSL, handling by a reverse proxy, uncomment this
+
+      # To use an external SMTP for emails, fill in these values:
+      # TAIGA_ENABLE_EMAIL: True
+      # TAIGA_EMAIL_FROM: no-reply@taiga.mycompany.net
+      # TAIGA_EMAIL_USE_TLS: True
+      # TAIGA_EMAIL_HOST: smtp.google.com
+      # TAIGA_EMAIL_PORT: 587
+      # TAIGA_EMAIL_USER: me@gmail.com
+      # TAIGA_EMAIL_PASS: super-secure-pass phrase thing!
+    volumes:
+      # I recommend specifying a volume that maps to taiga's media,
+      # this way uploaded files are not lost during upgrades of the taiga image
+      - ./media:/usr/src/taiga-back/media
+      # If you'd like to store the configuration outside of the container,
+      # uncomment this volume. This allows for easy changes to the configuration.
+      # - ./conf/taiga:/taiga
+      # - ./ssl.crt:/etc/nginx/ssl/ssl.crt:ro # To enable SSL, uncomment this line
+      # - ./ssl.key:/etc/nginx/ssl/ssl.key:ro # To enable SSL, uncomment this line
+      - ./docker/conf/taiga/local.py:/taiga/local.py
+      # - ./docker/conf/taiga/local.py:/usr/src/taiga-back/settings/local.py
+      - ./:/usr/src/taiga-back
+      # COPY docker/docker-settings.py /usr/src/taiga-back/settings/docker.py
+      - ./docker/conf/locale.gen:/etc/locale.gen
+      - ./docker/conf/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/conf/nginx/taiga.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/conf/nginx/ssl.conf:/etc/nginx/ssl.conf
+      - ./docker/conf/nginx/taiga-events.conf:/etc/nginx/taiga-events.conf
+      - ./docker/checkdb.py:/checkdb.py
+      - ./docker/docker-entrypoint.sh:/docker-entrypoint.sh
+      - /usr/src/taiga-back/settings
+
+  # postgres:
+  #   container_name: postgres
+  #   env_file: .env
+  #   image: postgres
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB:-taigadb}
+  #     POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+  #   ports:
+  #     - "5432:5432/tcp"
+  #   volumes:
+  #     # this helps prevent your postgres data from deleted
+  #     - ./pgdata:/var/lib/postgresql/data
